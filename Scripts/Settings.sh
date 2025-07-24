@@ -42,6 +42,11 @@ if [ -n "$WRT_PACKAGE" ]; then
 	echo -e "$WRT_PACKAGE" >> ./.config
 fi
 
+# ===================== 新增配置 =====================
+# 设置根文件系统分区大小（保留用户数据关键配置）
+echo "CONFIG_TARGET_ROOTFS_PARTSIZE=1024" >> ./.config
+# ====================================================
+
 #高通平台调整
 DTS_PATH="./target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/"
 if [[ "${WRT_TARGET^^}" == *"QUALCOMMAX"* ]]; then
@@ -66,7 +71,7 @@ if [[ "${WRT_TARGET^^}" == *"QUALCOMMAX"* ]]; then
 fi
 
 # TTYD 免登录
-sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
+#sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
 
 #编译器优化
 if [[ $WRT_TARGET == *"IPQ"* ]]; then
@@ -76,11 +81,26 @@ fi
 
 #IPK/APK包管理调整
 if [[ $WRT_USEAPK == 'true' ]]; then
+	# APK配置
 	echo "CONFIG_USE_APK=y" >> ./.config
+	echo "CONFIG_PACKAGE_default-settings-apk=y" >> ./.config
+	
+	# 创建APK配置文件
+	APK_CONF="./package/base-files/files/etc/apk/repositories"
+	mkdir -p $(dirname $APK_CONF)
+	echo "https://dl-cdn.alpinelinux.org/alpine/latest-stable/main" > $APK_CONF
+	echo "https://dl-cdn.alpinelinux.org/alpine/latest-stable/community" >> $APK_CONF
 	echo "APK package management has been enabled!"
 else
+	# IPK配置
 	echo "CONFIG_USE_APK=n" >> ./.config
 	echo "CONFIG_PACKAGE_default-settings-chn=y" >> ./.config
+	
+	# 添加opkg.conf配置
+	mkdir -p ./package/base-files/files/etc/opkg/
+	echo "option overlay_root /overlay" >> ./package/base-files/files/etc/opkg.conf
+	
+	# 中文默认设置
 	DEFAULT_CN_FILE=./package/emortal/default-settings/files/99-default-settings-chinese
 	if [ -f "$DEFAULT_CN_FILE" ]; then
 		sed -i.bak "/^exit 0/r $GITHUB_WORKSPACE/Scripts/patches/99-default-settings-chinese" $DEFAULT_CN_FILE
