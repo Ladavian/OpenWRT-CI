@@ -63,8 +63,8 @@ jobs:
   core:
     name: ${{inputs.WRT_SOURCE}}
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Projects
+    steps:    # 第66行 - 确保这行存在且没有多余字符
+      - name: Checkout Projects  # <-- 每个步骤必须以 "-" 开头
         uses: actions/checkout@main
 
       - name: Initialization Environment
