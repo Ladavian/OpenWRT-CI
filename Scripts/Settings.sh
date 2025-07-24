@@ -31,11 +31,6 @@ sed -i "s/192\.168\.[0-9]*\.[0-9]*/$WRT_IP/g" $CFG_FILE
 #修改默认主机名
 sed -i "s/hostname='.*'/hostname='$WRT_NAME'/g" $CFG_FILE
 
-# ================== 通用配置：创建overlay目录 ==================
-# 确保overlay目录存在（APK和IPK都需要）
-mkdir -p ./package/base-files/files/overlay/{upper,work}
-# =============================================================
-
 #配置文件修改
 echo "CONFIG_PACKAGE_luci=y" >> ./.config
 echo "CONFIG_LUCI_LANG_zh_Hans=y" >> ./.config
@@ -46,11 +41,6 @@ echo "CONFIG_PACKAGE_luci-app-$WRT_THEME-config=y" >> ./.config
 if [ -n "$WRT_PACKAGE" ]; then
 	echo -e "$WRT_PACKAGE" >> ./.config
 fi
-
-# ===================== 新增配置 =====================
-# 设置根文件系统分区大小（保留用户数据关键配置）
-echo "CONFIG_TARGET_ROOTFS_PARTSIZE=1024" >> ./.config
-# ====================================================
 
 #高通平台调整
 DTS_PATH="./target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/"
@@ -73,44 +63,4 @@ if [[ "${WRT_TARGET^^}" == *"QUALCOMMAX"* ]]; then
 		find $DTS_PATH -type f ! -iname '*nowifi*' -exec sed -i 's/ipq\(6018\|8074\).dtsi/ipq\1-nowifi.dtsi/g' {} +
 		echo "qualcommax set up nowifi successfully!"
 	fi
-fi
-
-# TTYD 免登录
-#sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
-
-#编译器优化
-if [[ $WRT_TARGET == *"IPQ"* ]]; then
-	echo "CONFIG_TARGET_OPTIONS=y" >> ./.config
-	echo "CONFIG_TARGET_OPTIMIZATION=\"-O2 -pipe -march=armv8-a+crypto+crc -mcpu=cortex-a53+crypto+crc -mtune=cortex-a53\"" >> ./.config
-fi
-
-#IPK/APK包管理调整
-if [[ $WRT_USEAPK == 'true' ]]; then
-	# APK配置
-	echo "CONFIG_USE_APK=y" >> ./.config
-	echo "CONFIG_PACKAGE_default-settings-apk=y" >> ./.config
-	
-	# 创建APK配置文件
-	APK_CONF="./package/base-files/files/etc/apk/repositories"
-	mkdir -p $(dirname $APK_CONF)
-	echo "https://dl-cdn.alpinelinux.org/alpine/latest-stable/main" > $APK_CONF
-	echo "https://dl-cdn.alpinelinux.org/alpine/latest-stable/community" >> $APK_CONF
-	echo "APK package management has been enabled!"
-else
-	# IPK配置
-	echo "CONFIG_USE_APK=n" >> ./.config
-	echo "CONFIG_PACKAGE_default-settings-chn=y" >> ./.config
-	
-	# 添加opkg.conf配置
-	mkdir -p ./package/base-files/files/etc/opkg/
-	echo "option overlay_root /overlay" >> ./package/base-files/files/etc/opkg.conf
-	
-	# 中文默认设置
-	DEFAULT_CN_FILE=./package/emortal/default-settings/files/99-default-settings-chinese
-	if [ -f "$DEFAULT_CN_FILE" ]; then
-		sed -i.bak "/^exit 0/r $GITHUB_WORKSPACE/Scripts/patches/99-default-settings-chinese" $DEFAULT_CN_FILE
-		sed -i '/^exit 0/d' $DEFAULT_CN_FILE && echo "exit 0" >> $DEFAULT_CN_FILE
-		echo "99-default-settings-chinese patch has been applied!"
-	fi
-	echo "IPK package management has been enabled!"
 fi
