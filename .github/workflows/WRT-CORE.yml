@@ -13,6 +13,12 @@ on:
       WRT_NAME:
         required: true
         type: string
+      WRT_SSID:
+        required: true
+        type: string
+      WRT_WORD:
+        required: true
+        type: string
       WRT_IP:
         required: true
         type: string
@@ -34,15 +40,14 @@ on:
       WRT_TEST:
         required: false
         type: string
-      WRT_USEAPK:
-        required: false
-        type: string
 
 env:
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   WRT_CONFIG: ${{inputs.WRT_CONFIG}}
   WRT_THEME: ${{inputs.WRT_THEME}}
   WRT_NAME: ${{inputs.WRT_NAME}}
+  WRT_SSID: ${{inputs.WRT_SSID}}
+  WRT_WORD: ${{inputs.WRT_WORD}}
   WRT_IP: ${{inputs.WRT_IP}}
   WRT_PW: ${{inputs.WRT_PW}}
   WRT_REPO: ${{inputs.WRT_REPO}}
@@ -50,7 +55,6 @@ env:
   WRT_SOURCE: ${{inputs.WRT_SOURCE}}
   WRT_PACKAGE: ${{inputs.WRT_PACKAGE}}
   WRT_TEST: ${{inputs.WRT_TEST}}
-  WRT_USEAPK: ${{inputs.WRT_USEAPK}}
 
 jobs:
   core:
@@ -59,19 +63,7 @@ jobs:
     steps:
       - name: Checkout Projects
         uses: actions/checkout@main
-        
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          # 以下是建议的配置，保留了编译可能需要的工具
-          android: true          # 删除 Android SDK (约 10GB)
-          dotnet: true          # 删除 .NET (约 2GB)
-          haskell: true         # 删除 Haskell (约 3GB)
-          large-packages: true   # 删除大型包 (约 5GB)
-          docker-images: true    # 删除 Docker 镜像 (约 5GB)
-          swap-storage: true     # 删除交换文件 (约 4GB)
-          tool-cache: false      # 保留工具缓存，可能包含需要的编译工具
-      
+
       - name: Initialization Environment
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -99,7 +91,6 @@ jobs:
           echo "WRT_TARGET=$(grep -m 1 -oP '^CONFIG_TARGET_\K[\w]+(?=\=y)' ./Config/$WRT_CONFIG.txt)" >> $GITHUB_ENV
           echo "WRT_KVER=none" >> $GITHUB_ENV
           echo "WRT_LIST=none" >> $GITHUB_ENV
-          echo "WRT_MODS=none" >> $GITHUB_ENV
 
       - name: Clone Code
         run: |
@@ -209,31 +200,24 @@ jobs:
 
       - name: Package Firmware
         run: |
-          cd ./wrt/ && mkdir -p ./upload/
+          cd ./wrt/ && mkdir ./upload/
 
-          cp -f ./.config ./upload/Config-"${WRT_CONFIG}"-"${WRT_INFO}"-"${WRT_BRANCH}"-"${WRT_DATE}".txt
+          cp -f ./.config ./upload/Config-"$WRT_CONFIG"-"$WRT_INFO"-"$WRT_BRANCH"-"$WRT_DATE".txt
 
           if [[ $WRT_TEST != 'true' ]]; then
-            echo "WRT_KVER=$(find ./bin/targets/ -type f -name "*.manifest" -exec grep -oP '^kernel - \K[\d\.]+' {} \; | head -1)" >> $GITHUB_ENV
-            echo "WRT_LIST=$(find ./bin/targets/ -type f -name "*.manifest" -exec grep -oP '^luci-(app|theme)[^ ]*' {} \; | sort -u | tr '\n' ' ')" >> $GITHUB_ENV
-            # 获取已编译固件（CONFIG_PACKAGE_xxx=m）
-            echo "WRT_MODS=$(grep '^CONFIG_PACKAGE_luci-\(app\|theme\)[^=]*=m$' ./.config | sed 's/^CONFIG_PACKAGE_//g; s/=m$//g' | sort | tr '\n' ' ')" >> $GITHUB_ENV
+            echo "WRT_KVER=$(find ./bin/targets/ -type f -name "*.manifest" -exec grep -oP '^kernel - \K[\d\.]+' {} \;)" >> $GITHUB_ENV
+            echo "WRT_LIST=$(find ./bin/targets/ -type f -name "*.manifest" -exec grep -oP '^luci-(app|theme)[^ ]*' {} \; | tr '\n' ' ')" >> $GITHUB_ENV
 
-            # 删除无用文件
-            find ./bin/targets/ -iregex ".*\(buildinfo\|json\|manifest\|sha256sums\)$" -exec rm -rf {} +
-            find ./bin/targets/ -iregex ".*\(squashfs-recovery\|initramfs-uImage\).*" -exec rm -rf {} +
+            find ./bin/targets/ -iregex ".*\(buildinfo\|json\|sha256sums\|packages\)$" -exec rm -rf {} +
 
-            # 移动并重命名固件文件到 upload 目录
-            PKG_TYPE=$([[ $WRT_USEAPK == 'true' ]] && echo "apk" || echo "ipk")
-            find ./bin/targets/ -type f \( -name "*.img.gz" -o -name "*.bin" \) | while read -r FILE; do
-              BASENAME=$(basename "$FILE")
-              # 在 squashfs 后面插入包类型
-              NEWNAME=$(echo "$BASENAME" | sed "s/\(squashfs\)/\1-${PKG_TYPE}/")
-              cp "$FILE" "./upload/$NEWNAME"
+            for FILE in $(find ./bin/targets/ -type f -iname "*$WRT_TARGET*") ; do
+              EXT=$(basename $FILE | cut -d '.' -f 2-)
+              NAME=$(basename $FILE | cut -d '.' -f 1 | grep -io "\($WRT_TARGET\).*")
+              NEW_FILE="$WRT_INFO"-"$WRT_BRANCH"-"$NAME"-"$WRT_DATE"."$EXT"
+              mv -f $FILE ./upload/$NEW_FILE
             done
-            
-            # 打包整个 bin 目录（包含 targets 和 packages）
-            [ -d ./bin/ ] && tar -czf ./upload/openwrt-"${WRT_INFO}"-"${WRT_BRANCH}"-"${WRT_DATE}".tar.gz -C . bin/
+
+            find ./bin/targets/ -type f -exec mv -f {} ./upload/ \;
 
             make clean -j$(nproc)
           fi
@@ -241,12 +225,14 @@ jobs:
       - name: Release Firmware
         uses: softprops/action-gh-release@master
         with:
-          tag_name: ${{env.WRT_NAME}}-JDCloud_RE-CS-07-${{env.WRT_BRANCH}}-${{ env.WRT_USEAPK == 'true' && 'APK' || 'IPK' }}-R${{env.WRT_DATE}}
+          tag_name: ${{env.WRT_CONFIG}}-${{env.WRT_INFO}}-${{env.WRT_BRANCH}}-${{env.WRT_DATE}}
           files: ./wrt/upload/*.*
           body: |
-            这是个平台固件包针对京东云太乙路由器(RE-CS-07)设备！
+            这是个平台固件包，内含多个设备！
+            请注意选择你需要的设备固件！
+            不要问，刷就完事了！
 
-            全系带开源NSS硬件加速！
+            全系带开源硬件加速，别问了！
 
             源码：${{env.WRT_REPO}}
             分支：${{env.WRT_BRANCH}}
@@ -262,7 +248,4 @@ jobs:
             WIFI密码：${{env.WRT_WORD}}
 
             内核版本：${{env.WRT_KVER}}
-            包管理器：${{ env.WRT_USEAPK == 'true' && 'APK' || 'IPK' }}
-            
-             📦 **固件集成插件**：
-            ${{env.WRT_LIST}}
+            插件列表：${{env.WRT_LIST}}
