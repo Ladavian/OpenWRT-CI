@@ -30,11 +30,12 @@ jobs:
     name: ${{matrix.CONFIG}}
     strategy:
       fail-fast: false
-      #max-parallel: 3
+      max-parallel: 2
       matrix:
         CONFIG: [IPQ60XX-WIFI-NO]
-        SOURCE: [VIKINGYFY/immortalwrt]
-        BRANCH: [main]
+        REPO_INFO:
+          - {SOURCE: VIKINGYFY/immortalwrt, BRANCH: main, NAME: immortalwrt, USEAPK: 'true'}
+          - {SOURCE: VIKINGYFY/immortalwrt, BRANCH: main, NAME: immortalwrt, USEAPK: 'false'}
 
     #调用公用编译核心WRT-CORE.yml
     uses: ./.github/workflows/WRT-CORE.yml
@@ -44,7 +45,7 @@ jobs:
       #默认主题
       WRT_THEME: argon
       #默认主机名
-      WRT_NAME: immortalwrt
+      WRT_NAME: ${{matrix.REPO_INFO.NAME}}
       #默认WIFI名称
       WRT_SSID: OWRT
       #默认WIFI密码
