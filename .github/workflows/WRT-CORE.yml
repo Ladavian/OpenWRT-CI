@@ -59,6 +59,18 @@ jobs:
     steps:
       - name: Checkout Projects
         uses: actions/checkout@main
+        
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # 以下是建议的配置，保留了编译可能需要的工具
+          android: true          # 删除 Android SDK (约 10GB)
+          dotnet: true          # 删除 .NET (约 2GB)
+          haskell: true         # 删除 Haskell (约 3GB)
+          large-packages: true   # 删除大型包 (约 5GB)
+          docker-images: true    # 删除 Docker 镜像 (约 5GB)
+          swap-storage: true     # 删除交换文件 (约 4GB)
+          tool-cache: false      # 保留工具缓存，可能包含需要的编译工具
       
       - name: Initialization Environment
         env:
@@ -87,6 +99,7 @@ jobs:
           echo "WRT_TARGET=$(grep -m 1 -oP '^CONFIG_TARGET_\K[\w]+(?=\=y)' ./Config/$WRT_CONFIG.txt)" >> $GITHUB_ENV
           echo "WRT_KVER=none" >> $GITHUB_ENV
           echo "WRT_LIST=none" >> $GITHUB_ENV
+          echo "WRT_MODS=none" >> $GITHUB_ENV
 
       - name: Clone Code
         run: |
@@ -220,12 +233,12 @@ jobs:
             done
             
             # 打包整个 bin 目录（包含 targets 和 packages）
-            #[ -d ./bin/ ] && tar -czf ./upload/openwrt-"${WRT_INFO}"-"${WRT_BRANCH}"-"${WRT_DATE}".tar.gz -C . bin/
+            [ -d ./bin/ ] && tar -czf ./upload/openwrt-"${WRT_INFO}"-"${WRT_BRANCH}"-"${WRT_DATE}".tar.gz -C . bin/
 
             make clean -j$(nproc)
           fi
 
-       - name: Release Firmware
+      - name: Release Firmware
         uses: softprops/action-gh-release@master
         with:
           tag_name: ${{env.WRT_NAME}}-JDCloud_RE-CS-07-${{env.WRT_BRANCH}}-${{ env.WRT_USEAPK == 'true' && 'APK' || 'IPK' }}-R${{env.WRT_DATE}}
