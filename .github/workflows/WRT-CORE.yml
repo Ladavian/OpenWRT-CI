@@ -67,6 +67,18 @@ jobs:
       - name: Checkout Projects
         uses: actions/checkout@main
 
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # 以下是建议的配置，保留了编译可能需要的工具
+          android: true          # 删除 Android SDK (约 10GB)
+          dotnet: true          # 删除 .NET (约 2GB)
+          haskell: true         # 删除 Haskell (约 3GB)
+          large-packages: true   # 删除大型包 (约 5GB)
+          docker-images: true    # 删除 Docker 镜像 (约 5GB)
+          swap-storage: true     # 删除交换文件 (约 4GB)
+          tool-cache: false      # 保留工具缓存，可能包含需要的编译工具
+
       - name: Initialization Environment
         env:
           DEBIAN_FRONTEND: noninteractive
