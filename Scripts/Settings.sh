@@ -64,3 +64,28 @@ if [[ "${WRT_TARGET^^}" == *"QUALCOMMAX"* ]]; then
 		echo "qualcommax set up nowifi successfully!"
 	fi
 fi
+
+# TTYD 免登录
+sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
+
+#编译器优化
+if [[ $WRT_TARGET == *"IPQ"* ]]; then
+	echo "CONFIG_TARGET_OPTIONS=y" >> ./.config
+	echo "CONFIG_TARGET_OPTIMIZATION=\"-O2 -pipe -march=armv8-a+crypto+crc -mcpu=cortex-a53+crypto+crc -mtune=cortex-a53\"" >> ./.config
+fi
+
+#IPK/APK包管理调整
+if [[ $WRT_USEAPK == 'true' ]]; then
+	echo "CONFIG_USE_APK=y" >> ./.config
+	echo "APK package management has been enabled!"
+else
+	echo "CONFIG_USE_APK=n" >> ./.config
+	echo "CONFIG_PACKAGE_default-settings-chn=y" >> ./.config
+	DEFAULT_CN_FILE=./package/emortal/default-settings/files/99-default-settings-chinese
+	if [ -f "$DEFAULT_CN_FILE" ]; then
+		sed -i.bak "/^exit 0/r $GITHUB_WORKSPACE/Scripts/patches/99-default-settings-chinese" $DEFAULT_CN_FILE
+		sed -i '/^exit 0/d' $DEFAULT_CN_FILE && echo "exit 0" >> $DEFAULT_CN_FILE
+		echo "99-default-settings-chinese patch has been applied!"
+	fi
+	echo "IPK package management has been enabled!"
+fi
