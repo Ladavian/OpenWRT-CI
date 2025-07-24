@@ -37,7 +37,7 @@ jobs:
           - {SOURCE: VIKINGYFY/immortalwrt, BRANCH: main, NAME: immortalwrt, USEAPK: 'true'}
           - {SOURCE: VIKINGYFY/immortalwrt, BRANCH: main, NAME: immortalwrt, USEAPK: 'false'}
 
-    #调用公用编译核心WRT-CORE.yml
+     #调用公用编译核心WRT-CORE.yml
     uses: ./.github/workflows/WRT-CORE.yml
     with:
       #编译配置
@@ -46,10 +46,6 @@ jobs:
       WRT_THEME: argon
       #默认主机名
       WRT_NAME: ${{matrix.REPO_INFO.NAME}}
-      #默认WIFI名称
-      WRT_SSID: OWRT
-      #默认WIFI密码
-      WRT_WORD: 12345678
       #默认地址
       WRT_IP: 192.168.5.1
       #默认密码，仅作提示，修改无用
