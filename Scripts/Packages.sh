@@ -58,6 +58,7 @@ UPDATE_PACKAGE "taskplan" "sirpdboy/luci-app-taskplan" "master"
 UPDATE_PACKAGE "mosdns" "sbwml/luci-app-mosdns" "v5" "" "v2dat"
 UPDATE_PACKAGE "partexp" "sirpdboy/luci-app-partexp" "main"
 UPDATE_PACKAGE "luci-app-adguardhome" "Ladavian/openwrt_pkgs" "main" "pkg"
+UPDATE_PACKAGE "luci-app-bandix-pkgs" "Ladavian/openwrt_pkgs" "main" "pkg"
 
 #UPDATE_PACKAGE "luci-app-smartdns" "pymumu/luci-app-smartdns" "master"
 #UPDATE_PACKAGE "smartdns" "pymumu/openwrt-smartdns" "master"
