@@ -13,6 +13,8 @@ https://github.com/VIKINGYFY/immortalwrt.git
 
 QUALCOMMAX系列
 
+X86系列
+
 # 目录简要说明：
 
 workflows——自定义CI配置
