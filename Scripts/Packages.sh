@@ -60,6 +60,7 @@ UPDATE_PACKAGE "partexp" "sirpdboy/luci-app-partexp" "main"
 UPDATE_PACKAGE "luci-app-adguardhome-pkgs" "Ladavian/openwrt_pkgs" "main" "pkg"
 UPDATE_PACKAGE "quickfile" "sbwml/luci-app-quickfile" "main"
 UPDATE_PACKAGE "luci-app-bandix-pkgs" "Ladavian/openwrt_pkgs" "main" "pkg"
+UPDATE_PACKAGE "OpenAppFilter" "Ladavian/openwrt_pkgs" "main" "pkg"
 
 #UPDATE_PACKAGE "luci-app-smartdns" "pymumu/luci-app-smartdns" "master"
 #UPDATE_PACKAGE "smartdns" "pymumu/openwrt-smartdns" "master"
